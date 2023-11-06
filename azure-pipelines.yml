@@ -1,0 +1,109 @@
+trigger:
+- master
+
+pool:
+  name: LinuxPool
+  demands:
+    - Terraform -equals Yes
+
+variables:
+  isDev: $[eq(variables['Build.SourceBranch'], 'refs/heads/development')]
+  isProd: $[eq(variables['Build.SourceBranchName'], 'refs/heads/production')]
+  TERRAFORM_PLAN: 'NO'
+  TERRAFORM_APPLY: 'NO'
+  TERRAFORM_DESTROY: 'YES'
+
+stages:
+  - stage: DownloadSecureFiles_TerraformPlan
+    pool:
+      name: LinuxPool
+    condition: and(eq(variables.TERRAFORM_PLAN, 'YES'), eq(variables.TERRAFORM_APPLY, 'NO'), eq(variables.TERRAFORM_DESTROY, 'NO'))
+    jobs:
+      - job: "Download_Secure_Files_TF_Plan"
+        timeoutInMinutes: 10
+        displayName: "Downloading all the secure files and exec tf plan"
+        steps:
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'access.auto.tfvars'
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'backend.json'
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: '$(Agent.TempDirectory)'
+            Contents: '**'
+            TargetFolder: '/home/adminritish/myagent/_work/1/s/'
+        - script: pwd && ls -al && echo $COMMIT_MESG
+          displayName: 'Files Check'
+        - script: terraform init -backend-config=backend.json
+          displayName: 'Terraform Init and configuring the backend'
+        - script: terraform fmt; terraform validate
+          displayName: 'Terraform Format and Validate'
+        - script: terraform plan
+          displayName: 'Terraform Plan'
+
+  - stage: Terraform_Apply_AutoApprove
+    pool:
+      name: LinuxPool
+    condition: and(eq(variables.TERRAFORM_PLAN, 'NO'), eq(variables.TERRAFORM_APPLY, 'YES'), eq(variables.TERRAFORM_DESTROY, 'NO'))
+    jobs:
+      - job: "Download_Secure_Files_TF_Plan"
+        timeoutInMinutes: 10
+        displayName: "Downloading all the secure files and exec tf plan"
+        steps:
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'access.auto.tfvars'
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'backend.json'
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: '$(Agent.TempDirectory)'
+            Contents: '**'
+            TargetFolder: '/home/adminritish/myagent/_work/1/s/'
+        - script: pwd && ls -al && echo $COMMIT_MESG
+          displayName: 'Files Check'
+        # - script: terraform init -backend-config='backend.json'
+        #   displayName: 'Terraform Init and configuring the backend'
+        # - script: terraform fmt; terraform validate
+        #   displayName: 'Terraform Format and Validate '
+        - script: terraform init -backend-config=backend.json
+          displayName: 'Terraform Init and configuring the backend'
+        - script: terraform fmt; terraform validate
+          displayName: 'Terraform Format and Validate'
+        - script: terraform apply --auto-approve
+          displayName: 'Terraform Apply'
+
+  - stage: Terraform_Destroy_AutoApprove
+    pool:
+      name: LinuxPool
+    condition: and(eq(variables.TERRAFORM_PLAN, 'NO'), eq(variables.TERRAFORM_APPLY, 'NO'), eq(variables.TERRAFORM_DESTROY, 'YES'))
+    jobs:
+      - job: "Download_Secure_Files_TF_Plan"
+        timeoutInMinutes: 10
+        displayName: "Downloading all the secure files and exec tf plan"
+        steps:
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'access.auto.tfvars'
+        - task: DownloadSecureFile@1
+          inputs: 
+            secureFile: 'backend.json'
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: '$(Agent.TempDirectory)'
+            Contents: '**'
+            TargetFolder: '/home/adminritish/myagent/_work/1/s/'
+        - script: pwd && ls -al && echo $COMMIT_MESG
+          displayName: 'Files Check'
+        # - script: terraform init -backend-config='backend.json '
+        #   displayName: 'Terraform Init and configuring the backend'
+        # - script: terraform fmt; terraform validate
+        #   displayName: 'Terraform Format and Validate'
+        - script: terraform init -backend-config=backend.json
+          displayName: 'Terraform Init and configuring the backend'
+        - script: terraform destroy --auto-approve
+          displayName: 'Terraform destroy'
+          
