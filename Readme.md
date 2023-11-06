@@ -10,6 +10,6 @@ This is a pipeline project to deploy the following
 
 And a pipeline.yml file to create a pipeline in Azure DevOps.
 
-To Be Done
+To Be Done <br />
 Create an SP in Azure with contributor access and pass the 4 values in access.auto.tfvars and backend.json. Add them in .gitignore and pass these 2 files as secure files in the pipeline.
 
